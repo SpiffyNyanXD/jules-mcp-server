@@ -173,6 +173,49 @@ app.get("/sync/:id", async (req, res) => {
 
 });
 
+app.post("/session/:id/continue", async (req, res) => {
+
+  try {
+
+    const sessionId = req.params.id;
+    const { prompt } = req.body;
+
+    const response = await fetch(
+      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}:reply`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": process.env.JULES_API_KEY
+        },
+        body: JSON.stringify({
+          prompt: prompt
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    await supabase
+      .from("jules_sessions")
+      .update({
+        attempts: 2,
+        updated_at: new Date().toISOString()
+      })
+      .eq("session_id", sessionId);
+
+    res.json(data);
+
+  } catch (err) {
+
+    res.status(500).json({
+      error: err.message
+    });
+
+  }
+
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
