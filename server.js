@@ -87,7 +87,7 @@ app.get("/session/:id/events", async (req, res) => {
     const sessionId = req.params.id;
 
     const response = await fetch(
-      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}:getEvents`,
+      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}/events`,
       {
         headers: {
           "X-Goog-Api-Key": process.env.JULES_API_KEY
@@ -98,6 +98,39 @@ app.get("/session/:id/events", async (req, res) => {
     const data = await response.json();
 
     res.json(data);
+
+  } catch (err) {
+
+    res.status(500).json({
+      error: err.message
+    });
+
+  }
+
+});
+
+app.get("/session/:id/pr", async (req, res) => {
+
+  try {
+
+    const sessionId = req.params.id;
+
+    const response = await fetch(
+      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}`,
+      {
+        headers: {
+          "X-Goog-Api-Key": process.env.JULES_API_KEY
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    res.json({
+      state: data.state,
+      url: data.url,
+      title: data.title
+    });
 
   } catch (err) {
 
