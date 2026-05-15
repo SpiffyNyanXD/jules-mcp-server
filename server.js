@@ -194,7 +194,7 @@ app.post("/session/:id/continue", async (req, res) => {
       }
     );
 
-    const data = await response.json();
+    const text = await response.text();
 
     await supabase
       .from("jules_sessions")
@@ -204,7 +204,10 @@ app.post("/session/:id/continue", async (req, res) => {
       })
       .eq("session_id", sessionId);
 
-    res.json(data);
+    res.json({
+      raw: text,
+      status: response.status
+    });
 
   } catch (err) {
 
