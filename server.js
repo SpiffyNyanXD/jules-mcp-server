@@ -13,6 +13,7 @@ app.get("/", (req, res) => {
 
 app.post("/create-session", async (req, res) => {
   try {
+
     const { prompt } = req.body;
 
     const response = await fetch(
@@ -24,9 +25,15 @@ app.post("/create-session", async (req, res) => {
           "X-Goog-Api-Key": process.env.JULES_API_KEY
         },
         body: JSON.stringify({
-          project: {
-            prompt: prompt
-          }
+          prompt: prompt,
+          sourceContext: {
+            source: "sources/github/SpiffyNyanXD/wec-jules-server",
+            githubRepoContext: {
+              startingBranch: "main"
+            }
+          },
+          automationMode: "AUTO_CREATE_PR",
+          title: "Claude Task"
         })
       }
     );
@@ -36,9 +43,11 @@ app.post("/create-session", async (req, res) => {
     res.json(data);
 
   } catch (err) {
+
     res.status(500).json({
       error: err.message
     });
+
   }
 });
 
