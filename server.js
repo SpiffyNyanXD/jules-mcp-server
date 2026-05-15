@@ -80,6 +80,35 @@ app.get("/session/:id", async (req, res) => {
 
 });
 
+app.get("/session/:id/events", async (req, res) => {
+
+  try {
+
+    const sessionId = req.params.id;
+
+    const response = await fetch(
+      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}:getEvents`,
+      {
+        headers: {
+          "X-Goog-Api-Key": process.env.JULES_API_KEY
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    res.json(data);
+
+  } catch (err) {
+
+    res.status(500).json({
+      error: err.message
+    });
+
+  }
+
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
