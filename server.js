@@ -24,7 +24,9 @@ app.post("/create-session", async (req, res) => {
           "X-Goog-Api-Key": process.env.JULES_API_KEY
         },
         body: JSON.stringify({
-          prompt
+          project: {
+            prompt: prompt
+          }
         })
       }
     );
