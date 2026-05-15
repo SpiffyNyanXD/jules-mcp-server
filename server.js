@@ -1,7 +1,13 @@
 import express from "express";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
 const app = express();
 
@@ -39,6 +45,18 @@ app.post("/create-session", async (req, res) => {
     );
 
     const data = await response.json();
+
+    await supabase
+      .from("jules_sessions")
+      .insert({
+        task_id: crypto.randomUUID(),
+        session_id: data.id,
+        title: data.title,
+        prompt: prompt,
+        status: "IN_PROGRESS",
+        attempts: 1,
+        repo: "SpiffyNyanXD/wec-pitwall"
+      });
 
     res.json(data);
 
