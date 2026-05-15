@@ -15,10 +15,23 @@ app.post("/create-session", async (req, res) => {
   try {
     const { prompt } = req.body;
 
-    res.json({
-      success: true,
-      receivedPrompt: prompt
-    });
+    const response = await fetch(
+      "https://jules.googleapis.com/v1alpha/sessions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": process.env.JULES_API_KEY
+        },
+        body: JSON.stringify({
+          prompt
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    res.json(data);
 
   } catch (err) {
     res.status(500).json({
