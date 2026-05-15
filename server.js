@@ -4,12 +4,12 @@ import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
+const app = express();
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 );
-
-const app = express();
 
 app.use(express.json());
 
@@ -18,6 +18,7 @@ app.get("/", (req, res) => {
 });
 
 app.post("/create-session", async (req, res) => {
+
   try {
 
     const { prompt } = req.body;
@@ -67,6 +68,7 @@ app.post("/create-session", async (req, res) => {
     });
 
   }
+
 });
 
 app.get("/session/:id", async (req, res) => {
@@ -77,35 +79,6 @@ app.get("/session/:id", async (req, res) => {
 
     const response = await fetch(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}`,
-      {
-        headers: {
-          "X-Goog-Api-Key": process.env.JULES_API_KEY
-        }
-      }
-    );
-
-    const data = await response.json();
-
-    res.json(data);
-
-  } catch (err) {
-
-    res.status(500).json({
-      error: err.message
-    });
-
-  }
-
-});
-
-app.get("/session/:id/events", async (req, res) => {
-
-  try {
-
-    const sessionId = req.params.id;
-
-    const response = await fetch(
-      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}/events`,
       {
         headers: {
           "X-Goog-Api-Key": process.env.JULES_API_KEY
@@ -148,6 +121,46 @@ app.get("/session/:id/pr", async (req, res) => {
       state: data.state,
       url: data.url,
       title: data.title
+    });
+
+  } catch (err) {
+
+    res.status(500).json({
+      error: err.message
+    });
+
+  }
+
+});
+
+app.get("/sync/:id", async (req, res) => {
+
+  try {
+
+    const sessionId = req.params.id;
+
+    const response = await fetch(
+      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}`,
+      {
+        headers: {
+          "X-Goog-Api-Key": process.env.JULES_API_KEY
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    await supabase
+      .from("jules_sessions")
+      .update({
+        status: data.state,
+        updated_at: new Date().toISOString()
+      })
+      .eq("session_id", sessionId);
+
+    res.json({
+      synced: true,
+      state: data.state
     });
 
   } catch (err) {
