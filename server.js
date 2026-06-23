@@ -21,7 +21,7 @@ app.post("/create-session", async (req, res) => {
 
   try {
 
-    const { prompt } = req.body;
+    const { prompt, repo = "owner/repo" } = req.body;
 
     const response = await fetch(
       "https://jules.googleapis.com/v1alpha/sessions",
@@ -34,13 +34,13 @@ app.post("/create-session", async (req, res) => {
         body: JSON.stringify({
           prompt: prompt,
           sourceContext: {
-            source: "sources/github/SpiffyNyanXD/wec-jules-server",
+            source: "sources/github/SpiffyNyanXD/jules-mcp-server",
             githubRepoContext: {
               startingBranch: "main"
             }
           },
           automationMode: "AUTO_CREATE_PR",
-          title: "Claude Task"
+          title: "Jules MCP Task"
         })
       }
     );
@@ -56,7 +56,7 @@ app.post("/create-session", async (req, res) => {
         prompt: prompt,
         status: "IN_PROGRESS",
         attempts: 1,
-        repo: "SpiffyNyanXD/wec-pitwall"
+        repo: repo
       });
 
     res.json(data);
