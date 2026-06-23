@@ -45,7 +45,12 @@ app.post("/create-session", async (req, res) => {
       }
     );
 
-    const data = await response.json();
+    const text = await response.text();
+
+    return res.json({
+      status: response.status,
+      raw: text
+    });
 
     await supabase
       .from("jules_sessions")
