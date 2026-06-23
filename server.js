@@ -34,7 +34,7 @@ app.post("/create-session", async (req, res) => {
         body: JSON.stringify({
           prompt: prompt,
           sourceContext: {
-            source: "sources/github/SpiffyNyanXD/jules-mcp-server",
+            source: "sources/github/SpiffyNyanXD/wec-jules-server",
             githubRepoContext: {
               startingBranch: "main"
             }
