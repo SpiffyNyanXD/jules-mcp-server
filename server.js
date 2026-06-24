@@ -20,6 +20,20 @@ const DEFAULT_REPO = process.env.GITHUB_REPO || `${DEFAULT_REPO_OWNER}/${DEFAULT
 const DEFAULT_BRANCH = process.env.GITHUB_BRANCH || "main";
 const MCP_PROTOCOL_VERSION = "2025-06-18";
 
+const getValidatedPrompt = (req, res) => {
+  const { prompt } = req.body ?? {};
+
+  if (typeof prompt !== "string" || prompt.trim().length === 0) {
+    res.status(400).json({
+      error: "prompt must be a non-empty string"
+    });
+    return null;
+  }
+
+  return prompt.trim();
+};
+
+app.post("/create-session", async (req, res) => {
 function getSourceContext(repo = DEFAULT_REPO, branch = DEFAULT_BRANCH) {
   const normalizedRepo = repo.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "");
   const [owner, name] = normalizedRepo.split("/");
