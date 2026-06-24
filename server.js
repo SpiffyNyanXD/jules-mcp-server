@@ -13,6 +13,56 @@ const supabase = createClient(
 
 app.use(express.json());
 
+const JULES_API_BASE_URL = "https://jules.googleapis.com/v1alpha";
+const JULES_API_TIMEOUT_MS = Number(process.env.JULES_API_TIMEOUT_MS) || 30000;
+
+class JulesApiTimeoutError extends Error {
+  constructor(timeoutMs) {
+    super(`Jules API request timed out after ${timeoutMs}ms`);
+    this.name = "JulesApiTimeoutError";
+  }
+}
+
+const isAbortError = (err) =>
+  err?.name === "AbortError" || err?.code === "ABORT_ERR";
+
+const julesFetch = async (path, options = {}) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), JULES_API_TIMEOUT_MS);
+
+  try {
+    return await fetch(`${JULES_API_BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        "X-Goog-Api-Key": process.env.JULES_API_KEY,
+        ...options.headers
+      },
+      signal: controller.signal
+    });
+  } catch (err) {
+    if (isAbortError(err)) {
+      throw new JulesApiTimeoutError(JULES_API_TIMEOUT_MS);
+    }
+
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const handleRouteError = (res, err) => {
+  if (err instanceof JulesApiTimeoutError) {
+    return res.status(504).json({
+      error: err.message
+    });
+  }
+
+  return res.status(500).json({
+    error: err.message
+  });
+};
+
+
 app.get("/", (req, res) => {
   res.send("Server running");
 });
@@ -37,13 +87,12 @@ app.post("/create-session", async (req, res) => {
 
     console.log(JSON.stringify(payload, null, 2));
 
-    const response = await fetch(
-      "https://jules.googleapis.com/v1alpha/sessions",
+    const response = await julesFetch(
+      "/sessions",
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": process.env.JULES_API_KEY
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(payload)
       }
@@ -72,9 +121,7 @@ app.post("/create-session", async (req, res) => {
 
   } catch (err) {
 
-    res.status(500).json({
-      error: err.message
-    });
+    handleRouteError(res, err);
 
   }
 
@@ -86,14 +133,7 @@ app.get("/session/:id", async (req, res) => {
 
     const sessionId = req.params.id;
 
-    const response = await fetch(
-      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}`,
-      {
-        headers: {
-          "X-Goog-Api-Key": process.env.JULES_API_KEY
-        }
-      }
-    );
+    const response = await julesFetch(`/sessions/${sessionId}`);
 
     const data = await response.json();
 
@@ -101,9 +141,7 @@ app.get("/session/:id", async (req, res) => {
 
   } catch (err) {
 
-    res.status(500).json({
-      error: err.message
-    });
+    handleRouteError(res, err);
 
   }
 
@@ -115,14 +153,7 @@ app.get("/session/:id/pr", async (req, res) => {
 
     const sessionId = req.params.id;
 
-    const response = await fetch(
-      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}`,
-      {
-        headers: {
-          "X-Goog-Api-Key": process.env.JULES_API_KEY
-        }
-      }
-    );
+    const response = await julesFetch(`/sessions/${sessionId}`);
 
     const data = await response.json();
 
@@ -134,9 +165,7 @@ app.get("/session/:id/pr", async (req, res) => {
 
   } catch (err) {
 
-    res.status(500).json({
-      error: err.message
-    });
+    handleRouteError(res, err);
 
   }
 
@@ -148,14 +177,7 @@ app.get("/sync/:id", async (req, res) => {
 
     const sessionId = req.params.id;
 
-    const response = await fetch(
-      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}`,
-      {
-        headers: {
-          "X-Goog-Api-Key": process.env.JULES_API_KEY
-        }
-      }
-    );
+    const response = await julesFetch(`/sessions/${sessionId}`);
 
     const data = await response.json();
 
@@ -174,9 +196,7 @@ app.get("/sync/:id", async (req, res) => {
 
   } catch (err) {
 
-    res.status(500).json({
-      error: err.message
-    });
+    handleRouteError(res, err);
 
   }
 
@@ -189,13 +209,12 @@ app.post("/session/:id/continue", async (req, res) => {
     const sessionId = req.params.id;
     const { prompt } = req.body;
 
-    const response = await fetch(
-      `https://jules.googleapis.com/v1alpha/sessions/${sessionId}:reply`,
+    const response = await julesFetch(
+      `/sessions/${sessionId}:reply`,
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": process.env.JULES_API_KEY
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           prompt: prompt
@@ -220,9 +239,7 @@ app.post("/session/:id/continue", async (req, res) => {
 
   } catch (err) {
 
-    res.status(500).json({
-      error: err.message
-    });
+    handleRouteError(res, err);
 
   }
 
