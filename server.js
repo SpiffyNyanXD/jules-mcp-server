@@ -35,7 +35,17 @@ app.post("/create-session", async (req, res) => {
       title: "Jules MCP Task"
     };
 
-    console.log(JSON.stringify(payload, null, 2));
+    const sourceContextId = payload.sourceContext?.source;
+    const promptProvided = typeof prompt === "string" && prompt.length > 0;
+
+    console.log(JSON.stringify({
+      route: "POST /create-session",
+      action: "create-session",
+      automationMode: payload.automationMode,
+      sourceContextId,
+      promptProvided,
+      promptLength: promptProvided ? prompt.length : 0
+    }));
 
     const response = await fetch(
       "https://jules.googleapis.com/v1alpha/sessions",
