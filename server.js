@@ -71,7 +71,7 @@ async function persistSession({ data, prompt, repo, status = "IN_PROGRESS" }) {
     return;
   }
 
-  await supabase.from("jules_sessions").insert({
+  const { error } = await supabase.from("jules_sessions").insert({
     task_id: crypto.randomUUID(),
     session_id: data.id,
     title: data.title,
@@ -80,6 +80,10 @@ async function persistSession({ data, prompt, repo, status = "IN_PROGRESS" }) {
     attempts: 1,
     repo
   });
+
+  if (error) {
+    console.error("Failed to persist session to Supabase:", error);
+  }
 }
 
 async function createJulesSession({ prompt, repo = DEFAULT_REPO, branch = DEFAULT_BRANCH, title = "Jules MCP Task", automationMode = "AUTO_CREATE_PR" }) {
