@@ -17,11 +17,28 @@ app.get("/", (req, res) => {
   res.send("Server running");
 });
 
+const getValidatedPrompt = (req, res) => {
+  const { prompt } = req.body ?? {};
+
+  if (typeof prompt !== "string" || prompt.trim().length === 0) {
+    res.status(400).json({
+      error: "prompt must be a non-empty string"
+    });
+    return null;
+  }
+
+  return prompt.trim();
+};
+
 app.post("/create-session", async (req, res) => {
 
   try {
 
-    const { prompt } = req.body;
+    const prompt = getValidatedPrompt(req, res);
+
+    if (prompt === null) {
+      return;
+    }
 
     const payload = {
       prompt: prompt,
@@ -187,7 +204,11 @@ app.post("/session/:id/continue", async (req, res) => {
   try {
 
     const sessionId = req.params.id;
-    const { prompt } = req.body;
+    const prompt = getValidatedPrompt(req, res);
+
+    if (prompt === null) {
+      return;
+    }
 
     const response = await fetch(
       `https://jules.googleapis.com/v1alpha/sessions/${sessionId}:reply`,
