@@ -13,6 +13,23 @@ const supabase = createClient(
 
 app.use(express.json());
 
+const parseJsonText = (text) => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
+const logSupabaseError = (operation, sessionId, error) => {
+  console.error("Supabase write failed", {
+    operation,
+    sessionId,
+    message: error.message,
+    code: error.code
+  });
+};
+
 app.get("/", (req, res) => {
   res.send("Server running");
 });
@@ -50,13 +67,19 @@ app.post("/create-session", async (req, res) => {
     );
 
     const text = await response.text();
+    const data = parseJsonText(text);
 
-    return res.json({
-      status: response.status,
-      raw: text
-    });
+    if (!response.ok) {
+      return res.status(response.status).json(data || { raw: text });
+    }
 
-    await supabase
+    if (!data) {
+      return res.status(502).json({
+        error: "Jules API returned invalid JSON"
+      });
+    }
+
+    const { error } = await supabase
       .from("jules_sessions")
       .insert({
         task_id: crypto.randomUUID(),
@@ -68,7 +91,14 @@ app.post("/create-session", async (req, res) => {
         repo: "SpiffyNyanXD/wec-pitwall"
       });
 
-    res.json(data);
+    if (error) {
+      logSupabaseError("create-session insert", data.id, error);
+      return res.status(500).json({
+        error: "Failed to record session"
+      });
+    }
+
+    res.status(response.status).json(data);
 
   } catch (err) {
 
@@ -159,13 +189,20 @@ app.get("/sync/:id", async (req, res) => {
 
     const data = await response.json();
 
-    await supabase
+    const { error } = await supabase
       .from("jules_sessions")
       .update({
         status: data.state,
         updated_at: new Date().toISOString()
       })
       .eq("session_id", sessionId);
+
+    if (error) {
+      logSupabaseError("sync session update", sessionId, error);
+      return res.status(500).json({
+        error: "Failed to sync session"
+      });
+    }
 
     res.json({
       synced: true,
@@ -205,13 +242,20 @@ app.post("/session/:id/continue", async (req, res) => {
 
     const text = await response.text();
 
-    await supabase
+    const { error } = await supabase
       .from("jules_sessions")
       .update({
         attempts: 2,
         updated_at: new Date().toISOString()
       })
       .eq("session_id", sessionId);
+
+    if (error) {
+      logSupabaseError("continue session update", sessionId, error);
+      return res.status(500).json({
+        error: "Failed to update session"
+      });
+    }
 
     res.json({
       raw: text,
