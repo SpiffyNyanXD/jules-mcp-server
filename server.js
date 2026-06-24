@@ -242,6 +242,13 @@ app.post("/session/:id/continue", async (req, res) => {
 
     const text = await response.text();
 
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: "Failed to continue session on Jules API",
+        raw: text
+      });
+    }
+
     const { error } = await supabase
       .from("jules_sessions")
       .update({
