@@ -73,9 +73,9 @@ app.post("/create-session", async (req, res) => {
       return res.status(response.status).json(data || { raw: text });
     }
 
-    if (!data) {
+    if (!data || !data.id) {
       return res.status(502).json({
-        error: "Jules API returned invalid JSON"
+        error: "Jules API response missing session ID"
       });
     }
 
