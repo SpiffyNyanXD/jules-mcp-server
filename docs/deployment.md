@@ -35,7 +35,7 @@ The server requires several environment variables to function correctly. These s
 
 3. Start the server:
    ```bash
-   npm run start &
+   npm start
    ```
    The server will typically start on `http://localhost:3000`.
 
