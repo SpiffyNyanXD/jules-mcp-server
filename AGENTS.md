@@ -52,7 +52,7 @@ To provide a robust, secure, and standard-compliant MCP interface to Google Jule
 
 ## MCP Standards
 
-- The server implements MCP over HTTP using `StreamableHTTPServerTransport` from the official SDK at `/mcp`.
+- The server implements MCP over HTTP using SSEServerTransport from the official SDK at /mcp.
 - Ensure all responses conform to JSON-RPC 2.0 specifications.
 - Support core MCP methods: `initialize`, `tools/list`, and `tools/call`.
 - Maintain correct tool schema definitions.
