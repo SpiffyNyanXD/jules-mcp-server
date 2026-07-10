@@ -14,13 +14,12 @@ A good branch name would be (where issue #325 is the ticket you're working on):
 
 `git checkout -b 325-add-new-mcp-tool`
 
-## Get the test suite running
+## Getting Started
 
 Make sure you have Node.js installed.
-Install dependencies and make sure the tests pass before you start developing.
+Install dependencies before you start developing:
 
-`npm install`
-`npm test`
+npm install
 
 ## Implement your fix or feature
 
