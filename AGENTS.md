@@ -52,6 +52,7 @@ To provide a robust, secure, and standard-compliant MCP interface to Google Jule
 
 ## MCP Standards
 
+- The server implements MCP over HTTP (`POST /mcp`).
 - The server implements MCP over HTTP (GET /mcp and POST /mcp/messages).
 - Ensure all responses conform to JSON-RPC 2.0 specifications.
 - Support core MCP methods: `initialize`, `tools/list`, and `tools/call`.
