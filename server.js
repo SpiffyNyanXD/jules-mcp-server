@@ -150,8 +150,7 @@ async function getJulesSession(sessionId) {
 }
 
 async function continueJulesSession({ sessionId, prompt }) {
-  // Verify session exists first
-  await getJulesSession(sessionId);
+  // Session existence is validated by the reply request below
 
   const { response, data, raw } = await callJules(`/sessions/${encodeURIComponent(sessionId)}:reply`, {
     method: "POST",
