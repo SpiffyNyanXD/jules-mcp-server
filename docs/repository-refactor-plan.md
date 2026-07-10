@@ -43,7 +43,7 @@ As the project grows, it is highly recommended to split `server.js` into smaller
 
 ## Breaking Change Analysis
 - **API Endpoints**: No breaking changes to the REST or MCP endpoints. All paths and behaviors will remain identical.
-- **Entry Point**: The main script changes from `node server.js` to `node src/index.js`. Deployment scripts will need to be updated.
+- **Entry Point**: The `main` entry in `package.json` needs to be updated to `src/index.js`, and the `start` script changes from `node server.js` to `node src/index.js`. Deployment scripts will need to be updated.
 - **Environment**: No breaking changes to existing environment variables.
 
 ## File Movement Plan
@@ -62,6 +62,8 @@ As the project grows, it is highly recommended to split `server.js` into smaller
 - **Low Risk**: This is purely a structural refactoring without adding new features or changing underlying business logic.
 - **Main Risk**: Accidental loss of context or broken imports.
   - *Mitigation*: Comprehensive manual testing of endpoints (both REST and MCP) and potentially writing basic API tests before starting the refactor.
+- **ES Module initialization risks**: Since the project uses ES Modules (`"type": "module"` in `package.json`), care must be taken with top-level await and imports. Dynamic imports or file resolution (`__dirname` is not available by default) might break.
+- **dotenv initialization risks**: `dotenv.config()` must be called as early as possible in the application lifecycle (e.g. at the very top of `src/index.js` or in a dedicated `config.js` imported first) to ensure environment variables are available to all modules.
 
 ## Estimated Implementation Phases
 - **Phase 1 (Preparation)**: Create directories, set up basic exports/imports.
