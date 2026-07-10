@@ -38,8 +38,10 @@ To provide a robust, secure, and standard-compliant MCP interface to Google Jule
 - `JULES_API_BASE`: The base URL for the Jules API.
 - `SUPABASE_URL`: Optional. Supabase project URL for session tracking.
 - `SUPABASE_KEY`: Optional. Supabase anon/service key.
-- `DEFAULT_REPO`: Optional. The default GitHub repository for sessions.
-- `DEFAULT_BRANCH`: Optional. The default starting branch.
+- **GITHUB_REPO**: Optional. The default GitHub repository for sessions.
+- **GITHUB_BRANCH**: Optional. The default starting branch.
+- **GITHUB_REPO_OWNER**: Optional. The default GitHub repository owner.
+- **GITHUB_REPO_NAME**: Optional. The default GitHub repository name.
 
 ## Coding Standards
 
