@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import crypto from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 
@@ -22,21 +23,6 @@ const DEFAULT_REPO_OWNER = process.env.GITHUB_REPO_OWNER || "SpiffyNyanXD";
 const DEFAULT_REPO_NAME = process.env.GITHUB_REPO_NAME || "jules-mcp-server";
 const DEFAULT_REPO = process.env.GITHUB_REPO || `${DEFAULT_REPO_OWNER}/${DEFAULT_REPO_NAME}`;
 const DEFAULT_BRANCH = process.env.GITHUB_BRANCH || "main";
-const MCP_PROTOCOL_VERSION = "2025-06-18";
-
-const getValidatedPrompt = (req, res) => {
-  const { prompt } = req.body ?? {};
-
-  if (typeof prompt !== "string" || prompt.trim().length === 0) {
-    res.status(400).json({
-      error: "prompt must be a non-empty string"
-    });
-    return null;
-  }
-
-  return prompt.trim();
-};
-
 function getSourceContext(repo = DEFAULT_REPO, branch = DEFAULT_BRANCH) {
   const normalizedRepo = repo.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "");
   const [owner, name] = normalizedRepo.split("/");
@@ -150,6 +136,16 @@ async function getJulesSession(sessionId) {
 }
 
 async function continueJulesSession({ sessionId, prompt }) {
+  try {
+    await getJulesSession(sessionId);
+  } catch (err) {
+    if (err.status === 404) {
+      const notFoundError = new Error(`Jules session not found: ${sessionId}`);
+      notFoundError.status = 404;
+      throw notFoundError;
+    }
+    throw err;
+  }
   const { response, data, raw } = await callJules(`/sessions/${encodeURIComponent(sessionId)}:reply`, {
     method: "POST",
     body: JSON.stringify({ prompt })
@@ -328,80 +324,103 @@ const tools = [
 ];
 
 
-const server = new Server(
-  {
-    name: "jules-mcp-server",
-    version: "1.0.0",
-  },
-  {
-    capabilities: {
-      tools: {},
+function createMcpServer() {
+  const server = new Server(
+    {
+      name: "jules-mcp-server",
+      version: "1.0.0",
     },
-  }
-);
-
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return { tools };
-});
-
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-
-  try {
-    switch (name) {
-      case "create_jules_session": {
-        const result = await createJulesSession(args || {});
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
-        };
-      }
-      case "get_jules_session": {
-        const result = await getJulesSession((args || {}).sessionId);
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
-        };
-      }
-      case "continue_jules_session": {
-        const result = await continueJulesSession(args || {});
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
-        };
-      }
-      case "debug_source_context": {
-        const repo = (args || {}).repo || DEFAULT_REPO;
-        const branch = (args || {}).branch || DEFAULT_BRANCH;
-        const result = { repo, branch, sourceContext: getSourceContext(repo, branch) };
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
-        };
-      }
-      default:
-        throw new Error(`Unknown tool: ${name}`);
+    {
+      capabilities: {
+        tools: {},
+      },
     }
-  } catch (err) {
-    return {
-      isError: true,
-      content: [
-        { type: "text", text: err.message }
-      ]
-    };
-  }
-});
+  );
 
-let transport;
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    return { tools };
+  });
+
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    try {
+      switch (name) {
+        case "create_jules_session": {
+          const result = await createJulesSession(args || {});
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+          };
+        }
+        case "get_jules_session": {
+          const result = await getJulesSession((args || {}).sessionId);
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+          };
+        }
+        case "continue_jules_session": {
+          const result = await continueJulesSession(args || {});
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+          };
+        }
+        case "debug_source_context": {
+          const repo = (args || {}).repo || DEFAULT_REPO;
+          const branch = (args || {}).branch || DEFAULT_BRANCH;
+          const result = { repo, branch, sourceContext: getSourceContext(repo, branch) };
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+          };
+        }
+        default:
+          throw new Error(`Unknown tool: ${name}`);
+      }
+    } catch (err) {
+      return {
+        isError: true,
+        content: [
+          { type: "text", text: err.message }
+        ]
+      };
+    }
+  });
+
+  return server;
+}
+
+
+const transports = new Map();
 
 app.get("/mcp", async (req, res) => {
-  transport = new SSEServerTransport("/mcp/messages", res);
+  const server = createMcpServer();
+  const transport = new SSEServerTransport("/mcp/messages", res);
+  transports.set(transport.sessionId, transport);
+
+  res.on('close', () => {
+    transports.delete(transport.sessionId);
+  });
+
   await server.connect(transport);
 });
 
 app.post("/mcp/messages", async (req, res) => {
+  const sessionId = req.query.sessionId;
+  const transport = transports.get(sessionId);
+
   if (transport) {
-    await transport.handlePostMessage(req, res);
+    await transport.handlePostMessage(req, res, req.body);
   } else {
-    res.status(400).send("No active transport");
+    res.status(404).send("No active transport for session");
   }
 });
+
+app.post("/mcp", async (req, res) => {
+  const server = createMcpServer();
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  await server.connect(transport);
+  await transport.handleRequest(req, res, req.body);
+});
+
 
 const PORT = process.env.PORT || 3000;
 
