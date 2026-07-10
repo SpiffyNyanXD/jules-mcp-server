@@ -36,10 +36,10 @@ To provide a robust, secure, and standard-compliant MCP interface to Google Jule
 - `PORT`: The port the server runs on (defaults to 3000).
 - `JULES_API_KEY`: Required. The API key for accessing Google Jules.
 - `JULES_API_BASE`: The base URL for the Jules API (defaults to `https://jules.googleapis.com/v1alpha`).
-- `GITHUB_REPO_OWNER`: Optional. Default GitHub organization or user for sessions.
-- `GITHUB_REPO_NAME`: Optional. Default GitHub repository name.
-- `GITHUB_REPO`: Optional. Default full repository name.
-- `GITHUB_BRANCH`: Optional. Default branch for new coding sessions.
+- `GITHUB_REPO_OWNER`: Optional. Default GitHub organization or user for sessions (defaults to `SpiffyNyanXD`).
+- `GITHUB_REPO_NAME`: Optional. Default GitHub repository name (defaults to `jules-mcp-server`).
+- `GITHUB_REPO`: Optional. Default full repository name (defaults to `${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}`).
+- `GITHUB_BRANCH`: Optional. Default branch for new coding sessions (defaults to `main`).
 - `SUPABASE_URL`: Optional. Supabase project URL for session tracking.
 - `SUPABASE_KEY`: Optional. Supabase anon/service key.
 
@@ -52,7 +52,8 @@ To provide a robust, secure, and standard-compliant MCP interface to Google Jule
 
 ## MCP Standards
 
-- The server implements MCP over HTTP using SSEServerTransport from the official SDK at /mcp.
+- The server implements MCP over HTTP (`POST /mcp`).
+- The server implements MCP over HTTP (GET /mcp and POST /mcp/messages).
 - Ensure all responses conform to JSON-RPC 2.0 specifications.
 - Support core MCP methods: `initialize`, `tools/list`, and `tools/call`.
 - Maintain correct tool schema definitions.
