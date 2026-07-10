@@ -16,6 +16,6 @@ We take the security of Jules MCP Server seriously. If you discover a security v
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them by sending an email to the maintainers of Jules MCP Server, or by using GitHub's private vulnerability reporting feature if enabled on this repository.
+Instead, please report them by sending an email to [security@example.com], or by using GitHub's private vulnerability reporting feature if enabled on this repository.
 
 We will acknowledge your report, investigate the issue, and provide a timeline for a fix. We will also coordinate with you on publishing a security advisory once the issue is resolved.
