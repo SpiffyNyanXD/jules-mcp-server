@@ -95,7 +95,7 @@ To use this server with Claude Desktop, you need to configure Claude to connect 
 
 1. Ensure your Jules MCP server is running locally (e.g., `http://localhost:3000/mcp`).
 2. Locate your Claude Desktop configuration file (`claude_desktop_config.json`).
-3. Add the server under the `mcpServers` configuration using the `sse` (Server-Sent Events) or HTTP endpoint approach. *Note: Since this Express server currently uses a basic POST mechanism for `/mcp`, you will need an MCP bridge or ensure your client supports standard HTTP POST-based JSON-RPC for MCP.*
+3. Add the server under the mcpServers configuration using the sse (Server-Sent Events) or HTTP endpoint approach. *Note: This Express server uses standard Server-Sent Events (SSE) transport, which is natively supported by Claude Desktop and other standard MCP clients.*
 
 Example snippet for a compatible MCP client configuration:
 ```json
