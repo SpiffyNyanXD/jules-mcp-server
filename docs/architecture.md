@@ -30,6 +30,6 @@ The server uses standard Node `fetch` to communicate with the `https://jules.goo
 To maintain session state and track task attempts, the server connects to a Supabase instance using `@supabase/supabase-js`. It stores data in a `jules_sessions` table.
 
 ### MCP Interface
-The server implements the Model Context Protocol (MCP) version `2025-06-18`. It utilizes the official `@modelcontextprotocol/sdk` providing a `StreamableHTTPServerTransport` at the `/mcp` HTTP endpoint to seamlessly handle `initialize`, `tools/list`, and `tools/call` via SSE streams.
+The server implements the Model Context Protocol (MCP) version 2025-06-18. It utilizes the official @modelcontextprotocol/sdk providing a SSEServerTransport at the /mcp HTTP endpoint to seamlessly handle initialize, tools/list, and tools/call via SSE streams.
 
 See [MCP Integration](./mcp.md) for tool details and [API Documentation](./api.md) for REST details.
