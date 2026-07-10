@@ -391,34 +391,80 @@ function createMcpServer() {
 
 const transports = new Map();
 
-app.get("/mcp", async (req, res) => {
+app.get("/mcp", async (req, res, next) => {
   const server = createMcpServer();
   const transport = new SSEServerTransport("/mcp/messages", res);
   transports.set(transport.sessionId, transport);
 
   res.on('close', () => {
     transports.delete(transport.sessionId);
+    try {
+      if (transport && typeof transport.close === 'function') {
+        transport.close();
+      }
+    } catch (err) {
+      console.error('Error closing SSE transport:', err);
+    }
+    try {
+      if (server && typeof server.close === 'function') {
+        server.close();
+      }
+    } catch (err) {
+      console.error('Error closing SSE server:', err);
+    }
   });
 
-  await server.connect(transport);
+  try {
+    await server.connect(transport);
+  } catch (err) {
+    return next(err);
+  }
 });
 
-app.post("/mcp/messages", async (req, res) => {
+app.post("/mcp/messages", async (req, res, next) => {
   const sessionId = req.query.sessionId;
   const transport = transports.get(sessionId);
 
   if (transport) {
-    await transport.handlePostMessage(req, res, req.body);
+    try {
+      await transport.handlePostMessage(req, res, req.body);
+    } catch (err) {
+      return next(err);
+    }
   } else {
     res.status(404).send("No active transport for session");
   }
 });
 
-app.post("/mcp", async (req, res) => {
-  const server = createMcpServer();
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-  await server.connect(transport);
-  await transport.handleRequest(req, res, req.body);
+app.post("/mcp", async (req, res, next) => {
+  let server;
+  let transport;
+
+  res.on('close', () => {
+    try {
+      if (transport && typeof transport.close === 'function') {
+        transport.close();
+      }
+    } catch (err) {
+      console.error('Error closing stateless transport:', err);
+    }
+    try {
+      if (server && typeof server.close === 'function') {
+        server.close();
+      }
+    } catch (err) {
+      console.error('Error closing stateless server:', err);
+    }
+  });
+
+  try {
+    server = createMcpServer();
+    transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (err) {
+    return next(err);
+  }
 });
 
 
