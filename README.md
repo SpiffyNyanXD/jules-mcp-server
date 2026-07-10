@@ -40,7 +40,7 @@ graph TD
 
 ## How it works
 
-The Jules MCP server is built on Node.js using Express. It exposes an SSE endpoint (GET /mcp) and a message endpoint (POST /mcp/messages) that accept JSON-RPC 2.0 requests formatted according to the MCP specification.
+The Jules MCP server is built on Node.js using Express. It exposes an endpoint (`/mcp`) that accepts JSON-RPC 2.0 requests formatted according to the MCP specification.
 
 When an LLM invokes an MCP tool, the server translates that call into an HTTP request to the upstream Jules API. For example, when `create_jules_session` is called, it constructs the necessary payload, passes along your `JULES_API_KEY`, creates the session on the Jules backend, and returns the session details to the LLM.
 
@@ -67,8 +67,8 @@ If Supabase is configured, it will simultaneously record session metadata (like 
    ```
 
 4. **Start the server:**
-   Ensure you have set `JULES_API_KEY` in your environment (e.g. via `.env`), as it is strictly required to run the server.
    ```bash
+   npm run build # (if any build steps exist)
    node server.js
    ```
    The server will start on port 3000 (or the port defined in your `.env`).
@@ -95,7 +95,7 @@ To use this server with Claude Desktop, you need to configure Claude to connect 
 
 1. Ensure your Jules MCP server is running locally (e.g., `http://localhost:3000/mcp`).
 2. Locate your Claude Desktop configuration file (`claude_desktop_config.json`).
-3. Add the server under the mcpServers configuration using the sse (Server-Sent Events) or HTTP endpoint approach. *Note: This Express server uses standard Server-Sent Events (SSE) transport, which is natively supported by Claude Desktop and other standard MCP clients.*
+3. Add the server under the `mcpServers` configuration using the `sse` (Server-Sent Events) or HTTP endpoint approach. *Note: Since this Express server currently uses a basic POST mechanism for `/mcp`, you will need an MCP bridge or ensure your client supports standard HTTP POST-based JSON-RPC for MCP.*
 
 Example snippet for a compatible MCP client configuration:
 ```json
@@ -139,7 +139,7 @@ curl -X POST http://localhost:3000/create-session \
 
 ## Roadmap
 
-- [x] Add support for Server-Sent Events (SSE) MCP transport.
+- [ ] Add support for Server-Sent Events (SSE) MCP transport.
 - [ ] Support custom authentication flows for multi-tenant setups.
 - [ ] Enhance Supabase integration to store deep traces of Jules interactions.
 - [ ] Add comprehensive unit and integration tests.
