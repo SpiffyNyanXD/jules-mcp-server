@@ -40,9 +40,26 @@ Creates a new Jules task session.
 
 ### `GET /session/:id`
 Retrieves the full details of an existing Jules session by its ID.
+**Response:**
+```json
+{
+  "id": "session_id",
+  "title": "Task title",
+  "state": "IN_PROGRESS",
+  "url": "https://github.com/owner/repo/pull/1"
+}
+```
 
 ### `GET /session/:id/pr`
 Retrieves only the PR state, URL, and title for a given session ID.
+**Response:**
+```json
+{
+  "state": "COMPLETED",
+  "url": "https://github.com/owner/repo/pull/1",
+  "title": "Task title"
+}
+```
 
 ### `GET /sync/:id`
 Fetches the latest session state from Jules and updates the local Supabase database with the current status.
@@ -50,7 +67,19 @@ Fetches the latest session state from Jules and updates the local Supabase datab
 
 ### `POST /session/:id/continue`
 Sends a follow-up prompt to an existing, active Jules session.
-**Body:** `{"prompt": "New instructions..."}`
+**Body:**
+```json
+{
+  "prompt": "New instructions..."
+}
+```
+**Response:**
+```json
+{
+  "id": "session_id",
+  "state": "IN_PROGRESS"
+}
+```
 
 ### `GET /mcp`
 Returns MCP capability metadata. See [MCP Documentation](./mcp.md).

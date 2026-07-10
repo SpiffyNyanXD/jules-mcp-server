@@ -68,8 +68,7 @@ If Supabase is configured, it will simultaneously record session metadata (like 
 
 4. **Start the server:**
    ```bash
-   npm run build # (if any build steps exist)
-   node server.js
+   npm start
    ```
    The server will start on port 3000 (or the port defined in your `.env`).
 
@@ -95,7 +94,7 @@ To use this server with Claude Desktop, you need to configure Claude to connect 
 
 1. Ensure your Jules MCP server is running locally (e.g., `http://localhost:3000/mcp`).
 2. Locate your Claude Desktop configuration file (`claude_desktop_config.json`).
-3. Add the server under the `mcpServers` configuration using the `sse` (Server-Sent Events) or HTTP endpoint approach. *Note: Since this Express server currently uses a basic POST mechanism for `/mcp`, you will need an MCP bridge or ensure your client supports standard HTTP POST-based JSON-RPC for MCP.*
+3. Add the server under the `mcpServers` configuration using the `sse` (Server-Sent Events) HTTP endpoint approach.
 
 Example snippet for a compatible MCP client configuration:
 ```json

@@ -2,7 +2,7 @@
 
 ## Current Structure
 The current repository consists of a monolithic structure where all logic is contained within a single file:
-- `server.js`: Contains Express setup, environment configuration, Supabase persistence, Jules API interactions, REST endpoints, and MCP Server routing logic.
+- `server.js`: Contains Express setup, environment configuration, Supabase persistence, Jules API interactions, REST endpoints, and MCP SDK transport routing logic.
 - `package.json`: Contains project metadata and dependencies.
 - `.gitignore`: Specifies intentionally untracked files to ignore.
 

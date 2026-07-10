@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 
@@ -150,6 +150,9 @@ async function getJulesSession(sessionId) {
 }
 
 async function continueJulesSession({ sessionId, prompt }) {
+  // Verify session exists first
+  await getJulesSession(sessionId);
+
   const { response, data, raw } = await callJules(`/sessions/${encodeURIComponent(sessionId)}:reply`, {
     method: "POST",
     body: JSON.stringify({ prompt })
@@ -388,19 +391,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-let transport;
-
-app.get("/mcp", async (req, res) => {
-  transport = new SSEServerTransport("/mcp/messages", res);
-  await server.connect(transport);
+const transport = new StreamableHTTPServerTransport({
+  sessionIdGenerator: () => crypto.randomUUID()
 });
+server.connect(transport);
 
-app.post("/mcp/messages", async (req, res) => {
-  if (transport) {
-    await transport.handlePostMessage(req, res);
-  } else {
-    res.status(400).send("No active transport");
-  }
+app.all(["/mcp", "/mcp/messages"], async (req, res) => {
+  await transport.handleRequest(req, res, req.body);
 });
 
 const PORT = process.env.PORT || 3000;
