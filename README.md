@@ -139,7 +139,7 @@ curl -X POST http://localhost:3000/create-session \
 
 ## Roadmap
 
-- [ ] Add support for Server-Sent Events (SSE) MCP transport.
+- [x] Add support for Server-Sent Events (SSE) MCP transport.
 - [ ] Support custom authentication flows for multi-tenant setups.
 - [ ] Enhance Supabase integration to store deep traces of Jules interactions.
 - [ ] Add comprehensive unit and integration tests.
