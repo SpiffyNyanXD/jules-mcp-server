@@ -40,7 +40,7 @@ graph TD
 
 ## How it works
 
-The Jules MCP server is built on Node.js using Express. It exposes an endpoint (`/mcp`) that accepts JSON-RPC 2.0 requests formatted according to the MCP specification.
+The Jules MCP server is built on Node.js using Express. It exposes an SSE endpoint (GET /mcp) and a message endpoint (POST /mcp/messages) that accept JSON-RPC 2.0 requests formatted according to the MCP specification.
 
 When an LLM invokes an MCP tool, the server translates that call into an HTTP request to the upstream Jules API. For example, when `create_jules_session` is called, it constructs the necessary payload, passes along your `JULES_API_KEY`, creates the session on the Jules backend, and returns the session details to the LLM.
 
