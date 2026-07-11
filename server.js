@@ -159,6 +159,13 @@ async function continueJulesSession({ sessionId, prompt }) {
   }
 
   if (!response.ok) {
+    if (response.status === 404) {
+      const notFoundError = new Error("session not found");
+      notFoundError.status = 404;
+      notFoundError.data = data;
+      notFoundError.raw = raw;
+      throw notFoundError;
+    }
     const error = new Error(`Jules continue-session failed with HTTP ${response.status}`);
     error.status = response.status;
     error.data = data;
