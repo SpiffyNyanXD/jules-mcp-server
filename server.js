@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 
@@ -163,6 +163,13 @@ async function continueJulesSession({ sessionId, prompt }) {
   }
 
   if (!response.ok) {
+    if (response.status === 404) {
+      const notFoundError = new Error("session not found");
+      notFoundError.status = 404;
+      notFoundError.data = data;
+      notFoundError.raw = raw;
+      throw notFoundError;
+    }
     const error = new Error(`Jules continue-session failed with HTTP ${response.status}`);
     error.status = response.status;
     error.data = data;
@@ -388,19 +395,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-let transport;
+const transport = new StreamableHTTPServerTransport({
+  sessionIdGenerator: undefined
+});
+
+await server.connect(transport);
 
 app.get("/mcp", async (req, res) => {
-  transport = new SSEServerTransport("/mcp/messages", res);
-  await server.connect(transport);
+  await transport.handleRequest(req, res);
 });
 
 app.post("/mcp/messages", async (req, res) => {
-  if (transport) {
-    await transport.handlePostMessage(req, res);
-  } else {
-    res.status(400).send("No active transport");
-  }
+  await transport.handleRequest(req, res, req.body);
 });
 
 const PORT = process.env.PORT || 3000;
