@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
@@ -396,54 +395,7 @@ function createMcpServer() {
 }
 
 
-const transports = new Map();
-
-app.get("/mcp", async (req, res, next) => {
-  const server = createMcpServer();
-  const transport = new SSEServerTransport("/mcp/messages", res);
-  transports.set(transport.sessionId, transport);
-
-  res.on('close', () => {
-    transports.delete(transport.sessionId);
-    try {
-      if (transport && typeof transport.close === 'function') {
-        transport.close();
-      }
-    } catch (err) {
-      console.error('Error closing SSE transport:', err);
-    }
-    try {
-      if (server && typeof server.close === 'function') {
-        server.close();
-      }
-    } catch (err) {
-      console.error('Error closing SSE server:', err);
-    }
-  });
-
-  try {
-    await server.connect(transport);
-  } catch (err) {
-    return next(err);
-  }
-});
-
-app.post("/mcp/messages", async (req, res, next) => {
-  const sessionId = req.query.sessionId;
-  const transport = transports.get(sessionId);
-
-  if (transport) {
-    try {
-      await transport.handlePostMessage(req, res, req.body);
-    } catch (err) {
-      return next(err);
-    }
-  } else {
-    res.status(404).send("No active transport for session");
-  }
-});
-
-app.post("/mcp", async (req, res, next) => {
+async function handleMcpRequest(req, res, next) {
   let server;
   let transport;
 
@@ -472,7 +424,11 @@ app.post("/mcp", async (req, res, next) => {
   } catch (err) {
     return next(err);
   }
-});
+}
+
+app.get("/mcp", handleMcpRequest);
+app.post("/mcp", handleMcpRequest);
+app.delete("/mcp", handleMcpRequest);
 
 
 const PORT = process.env.PORT || 3000;
