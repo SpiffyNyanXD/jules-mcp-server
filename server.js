@@ -106,7 +106,13 @@ async function persistSession({ data, prompt, repo, status = "IN_PROGRESS" }) {
 async function createJulesSession({ prompt, repository, branch = DEFAULT_BRANCH, title = "Jules MCP Task", automationMode = "AUTO_CREATE_PR" }) {
   const sourceContext = getSourceContext(repository, branch);
 
-  const validationRes = await fetch(`https://api.github.com/repos/${repository}`, {
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
+    const error = new Error("Repository must be in a valid owner/name format");
+    error.status = 400;
+    throw error;
+  }
+  const [owner, name] = repository.split("/");
+  const validationRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`, {
     headers: { "User-Agent": "jules-mcp-server" }
   });
   if (!validationRes.ok) {
