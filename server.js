@@ -23,8 +23,22 @@ const DEFAULT_REPO_OWNER = process.env.GITHUB_REPO_OWNER || "SpiffyNyanXD";
 const DEFAULT_REPO_NAME = process.env.GITHUB_REPO_NAME || "jules-mcp-server";
 const DEFAULT_REPO = process.env.GITHUB_REPO || `${DEFAULT_REPO_OWNER}/${DEFAULT_REPO_NAME}`;
 const DEFAULT_BRANCH = process.env.GITHUB_BRANCH || "main";
-function getSourceContext(repo = DEFAULT_REPO, branch = DEFAULT_BRANCH) {
-  const normalizedRepo = repo.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "");
+
+async function listGithubRepositories() {
+  const response = await fetch(`https://api.github.com/users/${DEFAULT_REPO_OWNER}/repos`, {
+    headers: {
+      "User-Agent": "jules-mcp-server"
+    }
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch repositories: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.map(repo => repo.full_name);
+}
+
+function getSourceContext(repository = DEFAULT_REPO, branch = DEFAULT_BRANCH) {
+  const normalizedRepo = repository.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "");
   const [owner, name] = normalizedRepo.split("/");
 
   if (!owner || !name) {
@@ -89,8 +103,18 @@ async function persistSession({ data, prompt, repo, status = "IN_PROGRESS" }) {
   }
 }
 
-async function createJulesSession({ prompt, repo = DEFAULT_REPO, branch = DEFAULT_BRANCH, title = "Jules MCP Task", automationMode = "AUTO_CREATE_PR" }) {
-  const sourceContext = getSourceContext(repo, branch);
+async function createJulesSession({ prompt, repository, branch = DEFAULT_BRANCH, title = "Jules MCP Task", automationMode = "AUTO_CREATE_PR" }) {
+  const sourceContext = getSourceContext(repository, branch);
+
+  const validationRes = await fetch(`https://api.github.com/repos/${repository}`, {
+    headers: { "User-Agent": "jules-mcp-server" }
+  });
+  if (!validationRes.ok) {
+    const error = new Error(`Repository validation failed: ${repository} does not exist or is not accessible.`);
+    error.status = 400;
+    throw error;
+  }
+
   const payload = {
     prompt,
     sourceContext,
@@ -114,7 +138,7 @@ async function createJulesSession({ prompt, repo = DEFAULT_REPO, branch = DEFAUL
     throw error;
   }
 
-  await persistSession({ data, prompt, repo });
+  await persistSession({ data, prompt, repo: repository });
 
   return { data, payload };
 }
@@ -211,13 +235,13 @@ app.get("/debug/source-context", (req, res) => {
 
 app.post("/create-session", async (req, res) => {
   try {
-    const { prompt, repo, branch, title, automationMode } = req.body;
+    const { prompt, repository, branch, title, automationMode } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: "prompt is required" });
     }
 
-    const result = await createJulesSession({ prompt, repo, branch, title, automationMode });
+    const result = await createJulesSession({ prompt, repository, branch, title, automationMode });
     res.json(result.data);
   } catch (err) {
     sendError(res, err);
@@ -274,6 +298,16 @@ app.post("/session/:id/continue", async (req, res) => {
 
 const tools = [
   {
+    name: "list_github_repositories",
+    title: "List GitHub repositories",
+    description: "Return the repositories accessible to the authenticated Jules account.",
+    inputSchema: {
+      type: "object",
+      properties: {}
+    },
+    annotations: { readOnlyHint: true }
+  },
+  {
     name: "create_jules_session",
     title: "Create Jules session",
     description: "Create a Jules coding session for a GitHub repository.",
@@ -281,12 +315,12 @@ const tools = [
       type: "object",
       properties: {
         prompt: { type: "string", description: "Task instructions for Jules." },
-        repo: { type: "string", description: "GitHub repository in owner/name format. Defaults to server configuration." },
+        repository: { type: "string", description: "GitHub repository in owner/name format." },
         branch: { type: "string", description: "Starting branch. Defaults to server configuration." },
         title: { type: "string", description: "Session title." },
         automationMode: { type: "string", description: "Jules automation mode.", default: "AUTO_CREATE_PR" }
       },
-      required: ["prompt"]
+      required: ["prompt", "repository"]
     },
     annotations: { destructiveHint: false }
   },
@@ -353,6 +387,12 @@ function createMcpServer() {
 
     try {
       switch (name) {
+        case "list_github_repositories": {
+          const result = await listGithubRepositories();
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+          };
+        }
         case "create_jules_session": {
           const result = await createJulesSession(args || {});
           return {

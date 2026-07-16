@@ -31,7 +31,7 @@ Creates a new Jules task session.
 ```json
 {
   "prompt": "Task instructions here",
-  "repo": "owner/repo",
+  "repository": "owner/repo",
   "branch": "main",
   "title": "Optional Title",
   "automationMode": "AUTO_CREATE_PR"

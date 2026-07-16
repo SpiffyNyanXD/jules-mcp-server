@@ -14,11 +14,16 @@ All MCP interactions occur via the `POST /mcp` endpoint.
 
 The server exposes the following tools to the MCP client (and subsequently to the LLM agent):
 
+### `list_github_repositories`
+Returns the repositories accessible to the authenticated Jules account.
+- **Input:**
+  - *None*
+
 ### `create_jules_session`
 Creates a new Jules coding session for a specified GitHub repository.
 - **Input:**
   - `prompt` (string, required): Task instructions for Jules.
-  - `repo` (string, optional): GitHub repository in `owner/name` format.
+  - `repository` (string, required): GitHub repository in `owner/name` format.
   - `branch` (string, optional): Starting branch.
   - `title` (string, optional): Session title.
   - `automationMode` (string, optional): Automation mode, defaults to `AUTO_CREATE_PR`.
