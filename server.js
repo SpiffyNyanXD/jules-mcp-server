@@ -40,18 +40,32 @@ async function listGithubRepositories() {
 }
 
 function getSourceContext(repository = DEFAULT_REPO, branch = DEFAULT_BRANCH) {
-  const normalizedRepo = repository.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "");
-  const [owner, name] = normalizedRepo.split("/");
+  const repoInput = String(repository || "").trim();
+  const githubUrlMatch = repoInput.match(/^https?:\/\/github\.com\/([^\/\s]+)\/([^\/\s]+?)(?:\.git)?$/i);
+  const normalizedRepo = githubUrlMatch
+    ? `${githubUrlMatch[1]}/${githubUrlMatch[2]}`
+    : repoInput.replace(/\.git$/i, "");
 
-  if (!owner || !name) {
+  const parts = normalizedRepo.split("/");
+  if (parts.length !== 2) {
     throw new Error("Repository must be in owner/name format");
+  }
+
+  const [owner, name] = parts;
+  const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
+  const repoPattern = /^[A-Za-z0-9._-]{1,100}$/;
+
+  if (!ownerPattern.test(owner) || !repoPattern.test(name)) {
+    throw new Error("Invalid repository format");
   }
 
   return {
     source: `sources/github/${owner}/${name}`,
     githubRepoContext: {
       startingBranch: branch
-    }
+    },
+    owner,
+    name
   };
 }
 
@@ -107,15 +121,10 @@ async function persistSession({ data, prompt, repo, status = "IN_PROGRESS" }) {
 
 async function createJulesSession({ prompt, repository, branch = DEFAULT_BRANCH, title = "Jules MCP Task", automationMode = "AUTO_CREATE_PR" }) {
   const sourceContext = getSourceContext(repository, branch);
-  const normalizedRepo = sourceContext.source.replace("sources/github/", "");
-  
-  if (normalizedRepo.includes("..")) {
-    const error = new Error("Invalid repository format.");
-    error.status = 400;
-    throw error;
-  }
+  const normalizedRepo = `${sourceContext.owner}/${sourceContext.name}`;
 
-  const validationRes = await fetch(`https://api.github.com/repos/${normalizedRepo}`, {
+  const validationUrl = `https://api.github.com/repos/${encodeURIComponent(sourceContext.owner)}/${encodeURIComponent(sourceContext.name)}`;
+  const validationRes = await fetch(validationUrl, {
     headers: { "User-Agent": "jules-mcp-server" }
   });
   if (!validationRes.ok) {
