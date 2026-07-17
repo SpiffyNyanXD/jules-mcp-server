@@ -12,7 +12,7 @@ Jules MCP Server is a Model Context Protocol (MCP) compatible server that acts a
 - **Jules API Integration**: Exposes the power of the Jules autonomous coding engine to your local AI environment.
 - **Repository Context Handling**: Automatically derives source context for GitHub repositories and branches.
 - **Session Persistence**: Optionally logs coding sessions to a Supabase database for long-term tracking.
-- **Tool Exposing**: Provides `create_jules_session`, `get_jules_session`, `continue_jules_session`, and `debug_source_context` to connected clients.
+- **Tool Exposing**: Provides `list_github_repositories`, `create_jules_session`, `get_jules_session`, `continue_jules_session`, and `debug_source_context` to connected clients.
 
 ## Why this project exists
 
@@ -27,11 +27,13 @@ graph TD
     MCPServer -.->|Session Logging| Supabase[(Supabase Database)]
 
     subgraph "Jules MCP Server Tools"
+        T0[list_github_repositories]
         T1[create_jules_session]
         T2[get_jules_session]
         T3[continue_jules_session]
         T4[debug_source_context]
     end
+    MCPServer --> T0
     MCPServer --> T1
     MCPServer --> T2
     MCPServer --> T3
@@ -83,7 +85,6 @@ The server behaves differently depending on the configured environment variables
 | `JULES_API_BASE` | The base URL for the Jules API. | `https://jules.googleapis.com/v1alpha` |
 | `GITHUB_REPO_OWNER` | Default GitHub organization or user for sessions. | `SpiffyNyanXD` |
 | `GITHUB_REPO_NAME` | Default GitHub repository name. | `jules-mcp-server` |
-| `GITHUB_REPO` | Default full repository name (owner/name). | Derived from above |
 | `GITHUB_BRANCH` | Default branch for new coding sessions. | `main` |
 | `PORT` | Port for the Express server to listen on. | `3000` |
 | `SUPABASE_URL` | *Optional.* Your Supabase project URL. | *None* |
@@ -123,7 +124,7 @@ curl -X POST http://localhost:3000/create-session \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "Fix the off-by-one error in the pagination component.",
-    "repo": "SpiffyNyanXD/my-project",
+    "repository": "SpiffyNyanXD/my-project",
     "branch": "develop"
   }'
 ```
