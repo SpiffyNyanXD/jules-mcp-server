@@ -106,17 +106,28 @@ async function persistSession({ data, prompt, repo, status = "IN_PROGRESS" }) {
 async function createJulesSession({ prompt, repository, branch = DEFAULT_BRANCH, title = "Jules MCP Task", automationMode = "AUTO_CREATE_PR" }) {
   const sourceContext = getSourceContext(repository, branch);
 
-  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
+  // Extract normalized owner/name from the validated sourceContext
+  // sourceContext.source format: "sources/github/${owner}/${name}"
+  const normalizedRepo = sourceContext.source.replace(/^sources\/github\//, "");
+  const [owner, name] = normalizedRepo.split("/");
+
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(normalizedRepo)) {
     const error = new Error("Repository must be in a valid owner/name format");
     error.status = 400;
     throw error;
   }
-  const [owner, name] = repository.split("/");
+
+  if (normalizedRepo.includes("..")) {
+    const error = new Error("Repository cannot contain '..'");
+    error.status = 400;
+    throw error;
+  }
+
   const validationRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`, {
     headers: { "User-Agent": "jules-mcp-server" }
   });
   if (!validationRes.ok) {
-    const error = new Error(`Repository validation failed: ${repository} does not exist or is not accessible.`);
+    const error = new Error(`Repository validation failed: ${normalizedRepo} does not exist or is not accessible.`);
     error.status = 400;
     throw error;
   }
@@ -144,7 +155,7 @@ async function createJulesSession({ prompt, repository, branch = DEFAULT_BRANCH,
     throw error;
   }
 
-  await persistSession({ data, prompt, repo: repository });
+  await persistSession({ data, prompt, repo: normalizedRepo });
 
   return { data, payload };
 }
