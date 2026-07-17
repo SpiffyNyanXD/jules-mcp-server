@@ -25,13 +25,15 @@ const DEFAULT_REPO = process.env.GITHUB_REPO || `${DEFAULT_REPO_OWNER}/${DEFAULT
 const DEFAULT_BRANCH = process.env.GITHUB_BRANCH || "main";
 
 async function listGithubRepositories() {
-  const response = await fetch(`https://api.github.com/users/${DEFAULT_REPO_OWNER}/repos`, {
-    headers: {
-      "User-Agent": "jules-mcp-server"
-    }
-  });
+  const headers = { "User-Agent": "jules-mcp-server" };
+  let response = await fetch(`https://api.github.com/users/${DEFAULT_REPO_OWNER}/repos`, { headers });
+
+  if (response.status === 404) {
+    response = await fetch(`https://api.github.com/orgs/${DEFAULT_REPO_OWNER}/repos`, { headers });
+  }
+
   if (!response.ok) {
-    throw new Error(`Failed to fetch repositories: ${response.status}`);
+    throw new Error(`Failed to fetch repositories for ${DEFAULT_REPO_OWNER}: ${response.status}`);
   }
   const data = await response.json();
   return data.map(repo => repo.full_name);
@@ -105,25 +107,15 @@ async function persistSession({ data, prompt, repo, status = "IN_PROGRESS" }) {
 
 async function createJulesSession({ prompt, repository, branch = DEFAULT_BRANCH, title = "Jules MCP Task", automationMode = "AUTO_CREATE_PR" }) {
   const sourceContext = getSourceContext(repository, branch);
-
-  // Extract normalized owner/name from the validated sourceContext
-  // sourceContext.source format: "sources/github/${owner}/${name}"
-  const normalizedRepo = sourceContext.source.replace(/^sources\/github\//, "");
-  const [owner, name] = normalizedRepo.split("/");
-
-  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(normalizedRepo)) {
-    const error = new Error("Repository must be in a valid owner/name format");
-    error.status = 400;
-    throw error;
-  }
-
+  const normalizedRepo = sourceContext.source.replace("sources/github/", "");
+  
   if (normalizedRepo.includes("..")) {
-    const error = new Error("Repository cannot contain '..'");
+    const error = new Error("Invalid repository format.");
     error.status = 400;
     throw error;
   }
 
-  const validationRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`, {
+  const validationRes = await fetch(`https://api.github.com/repos/${normalizedRepo}`, {
     headers: { "User-Agent": "jules-mcp-server" }
   });
   if (!validationRes.ok) {
@@ -254,8 +246,8 @@ app.post("/create-session", async (req, res) => {
   try {
     const { prompt, repository, branch, title, automationMode } = req.body;
 
-    if (!prompt) {
-      return res.status(400).json({ error: "prompt is required" });
+    if (!prompt || typeof repository !== 'string') {
+      return res.status(400).json({ error: "prompt and repository (as a string) are required" });
     }
 
     const result = await createJulesSession({ prompt, repository, branch, title, automationMode });
