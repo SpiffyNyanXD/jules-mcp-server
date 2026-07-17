@@ -15,7 +15,7 @@ All MCP interactions occur via the `POST /mcp` endpoint.
 The server exposes the following tools to the MCP client (and subsequently to the LLM agent):
 
 ### `list_github_repositories`
-Returns the public repositories for the configured default owner.
+Returns the repositories accessible to the authenticated Jules account.
 - **Input:**
   - *None*
 

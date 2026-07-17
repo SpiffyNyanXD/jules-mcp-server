@@ -25,47 +25,31 @@ const DEFAULT_REPO = process.env.GITHUB_REPO || `${DEFAULT_REPO_OWNER}/${DEFAULT
 const DEFAULT_BRANCH = process.env.GITHUB_BRANCH || "main";
 
 async function listGithubRepositories() {
-  const headers = { "User-Agent": "jules-mcp-server" };
-  let response = await fetch(`https://api.github.com/users/${DEFAULT_REPO_OWNER}/repos`, { headers });
-
-  if (response.status === 404) {
-    response = await fetch(`https://api.github.com/orgs/${DEFAULT_REPO_OWNER}/repos`, { headers });
-  }
-
+  const response = await fetch(`https://api.github.com/users/${DEFAULT_REPO_OWNER}/repos`, {
+    headers: {
+      "User-Agent": "jules-mcp-server"
+    }
+  });
   if (!response.ok) {
-    throw new Error(`Failed to fetch repositories for ${DEFAULT_REPO_OWNER}: ${response.status}`);
+    throw new Error(`Failed to fetch repositories: ${response.status}`);
   }
   const data = await response.json();
   return data.map(repo => repo.full_name);
 }
 
 function getSourceContext(repository = DEFAULT_REPO, branch = DEFAULT_BRANCH) {
-  const repoInput = String(repository || "").trim();
-  const githubUrlMatch = repoInput.match(/^https?:\/\/github\.com\/([^\/\s]+)\/([^\/\s]+?)(?:\.git)?$/i);
-  const normalizedRepo = githubUrlMatch
-    ? `${githubUrlMatch[1]}/${githubUrlMatch[2]}`
-    : repoInput.replace(/\.git$/i, "");
+  const normalizedRepo = repository.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "");
+  const [owner, name] = normalizedRepo.split("/");
 
-  const parts = normalizedRepo.split("/");
-  if (parts.length !== 2) {
+  if (!owner || !name) {
     throw new Error("Repository must be in owner/name format");
-  }
-
-  const [owner, name] = parts;
-  const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
-  const repoPattern = /^[A-Za-z0-9._-]{1,100}$/;
-
-  if (!ownerPattern.test(owner) || !repoPattern.test(name)) {
-    throw new Error("Invalid repository format");
   }
 
   return {
     source: `sources/github/${owner}/${name}`,
     githubRepoContext: {
       startingBranch: branch
-    },
-    owner,
-    name
+    }
   };
 }
 
@@ -121,14 +105,19 @@ async function persistSession({ data, prompt, repo, status = "IN_PROGRESS" }) {
 
 async function createJulesSession({ prompt, repository, branch = DEFAULT_BRANCH, title = "Jules MCP Task", automationMode = "AUTO_CREATE_PR" }) {
   const sourceContext = getSourceContext(repository, branch);
-  const normalizedRepo = `${sourceContext.owner}/${sourceContext.name}`;
 
-  const validationUrl = `https://api.github.com/repos/${encodeURIComponent(sourceContext.owner)}/${encodeURIComponent(sourceContext.name)}`;
-  const validationRes = await fetch(validationUrl, {
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
+    const error = new Error("Repository must be in a valid owner/name format");
+    error.status = 400;
+    throw error;
+  }
+  const [owner, name] = repository.split("/");
+  const url = new URL(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`, "https://api.github.com");
+  const validationRes = await fetch(url, {
     headers: { "User-Agent": "jules-mcp-server" }
   });
   if (!validationRes.ok) {
-    const error = new Error(`Repository validation failed: ${normalizedRepo} does not exist or is not accessible.`);
+    const error = new Error(`Repository validation failed: ${repository} does not exist or is not accessible.`);
     error.status = 400;
     throw error;
   }
@@ -156,7 +145,7 @@ async function createJulesSession({ prompt, repository, branch = DEFAULT_BRANCH,
     throw error;
   }
 
-  await persistSession({ data, prompt, repo: normalizedRepo });
+  await persistSession({ data, prompt, repo: repository });
 
   return { data, payload };
 }
@@ -255,8 +244,8 @@ app.post("/create-session", async (req, res) => {
   try {
     const { prompt, repository, branch, title, automationMode } = req.body;
 
-    if (!prompt || typeof repository !== 'string') {
-      return res.status(400).json({ error: "prompt and repository (as a string) are required" });
+    if (!prompt) {
+      return res.status(400).json({ error: "prompt is required" });
     }
 
     const result = await createJulesSession({ prompt, repository, branch, title, automationMode });
@@ -318,7 +307,7 @@ const tools = [
   {
     name: "list_github_repositories",
     title: "List GitHub repositories",
-    description: "Lists public GitHub repositories for the configured default owner (`GITHUB_REPO_OWNER`).",
+    description: "Return the repositories accessible to the authenticated Jules account.",
     inputSchema: {
       type: "object",
       properties: {}
