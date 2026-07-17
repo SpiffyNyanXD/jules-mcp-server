@@ -306,7 +306,7 @@ const tools = [
   {
     name: "list_github_repositories",
     title: "List GitHub repositories",
-    description: "Return the repositories accessible to the authenticated Jules account.",
+    description: "Lists public GitHub repositories for the configured default owner (`GITHUB_REPO_OWNER`).",
     inputSchema: {
       type: "object",
       properties: {}
